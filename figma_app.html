@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>소 관리 시스템</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -14,6 +15,7 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #f5f5f5;
+            padding-bottom: 50px;
         }
 
         .container {
@@ -112,39 +114,7 @@
             display: block;
         }
 
-        /* 알림창 */
-        .alert {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .alert-title {
-            font-weight: bold;
-            color: #856404;
-            margin-bottom: 10px;
-        }
-
-        .alert-text {
-            color: #856404;
-            margin-bottom: 10px;
-        }
-
-        .alert-code {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            margin: 10px 0;
-            overflow-x: auto;
-        }
-
-        /* 실시간 카메라 섹션 */
+        /* 카메라 섹션 */
         .camera-section {
             background: white;
             border-radius: 8px;
@@ -163,10 +133,6 @@
             gap: 8px;
         }
 
-        .camera-icon {
-            font-size: 18px;
-        }
-
         .camera-container {
             background: #000;
             border-radius: 8px;
@@ -182,21 +148,6 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-        }
-
-        .camera-placeholder {
-            text-align: center;
-            color: #999;
-        }
-
-        .camera-placeholder-icon {
-            font-size: 60px;
-            margin-bottom: 10px;
-        }
-
-        .camera-placeholder-text {
-            font-size: 14px;
-            color: #999;
         }
 
         /* 버튼 그룹 */
@@ -254,11 +205,6 @@
             color: #999;
         }
 
-        .empty-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-
         .message-item {
             padding: 12px;
             margin-bottom: 10px;
@@ -303,10 +249,6 @@
             background: #4CAF50;
             color: white;
         }
-
-        body {
-            padding-bottom: 50px;
-        }
     </style>
 </head>
 <body>
@@ -319,12 +261,12 @@
                     📊 DB: 4마리
                 </div>
                 <div class="status-item">
-                    <span class="status-icon status-online" id="mounting-status"></span>
-                    감지: <span id="mounting-count">0</span>건
+                    <span class="status-icon status-online" id="camera-status"></span>
+                    감지: <span id="detection-count">0</span>건
                 </div>
                 <div class="status-item">
-                    <span class="status-icon status-offline" id="other-status"></span>
-                    마운팅: <span id="other-count">0</span>건
+                    <span class="status-icon status-offline" id="supabase-status"></span>
+                    Supabase: <span id="supabase-connected">미연결</span>
                 </div>
             </div>
         </div>
@@ -341,22 +283,9 @@
 
         <!-- 카메라 탭 -->
         <div class="tab-pane active" id="camera-pane">
-            <!-- 연결 오류 알림 -->
-            <div id="error-alert" style="display: none;">
-                <div class="alert">
-                    <div class="alert-title">⚠️ Flask 서버에 연결되지 않았습니다</div>
-                    <div class="alert-text">
-                        PyCharm에서 detection_streaming_server.py를 실행해주세요.
-                    </div>
-                    <div class="alert-code">python detection_streaming_server.py</div>
-                    <div class="alert-text">현재 API URL: http://10.9.2.130:5000</div>
-                </div>
-            </div>
-
-            <!-- 카메라 섹션 -->
             <div class="camera-section">
                 <div class="camera-label">
-                    <span class="camera-icon">📷</span>
+                    <span>📷</span>
                     실시간 카메라
                 </div>
 
@@ -381,7 +310,6 @@
                 <div class="list-header">📋 감지된 항목</div>
                 <div id="message-container">
                     <div class="empty-state">
-                        <div class="empty-icon">📭</div>
                         <div>감지된 항목이 없습니다</div>
                     </div>
                 </div>
@@ -391,15 +319,19 @@
 
     <!-- 하단 배너 -->
     <div class="bottom-banner" id="bottom-banner">
-        🔴 Flask 서버 미연결 | PyCharm에서 서버를 실행해주세요
+        🟡 Supabase 연결 중...
     </div>
 
     <script>
-        // ⭐ API URL 설정 (당신의 IP: 10.9.2.130)
-        const API_URL = 'http://10.9.2.130:5000';
+        // ⭐ Supabase 설정
+        const SUPABASE_URL = 'https://cnwvsiniftozuompjlwk.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNud3ZzaW5pZnRvenVvbXBqbHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNjQ1MTksImV4cCI6MjA3Nzg0MDUxOX0.KTHJP5BE-NAWlhdzcVPgqZoVDZ2LLQQmFg0FY9vfRa8';
 
-        let lastMessageId = -1;
+        const { createClient } = window.supabase;
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let isConnected = false;
+        let lastDetectionId = -1;
 
         // 탭 전환
         function switchTab(tab) {
@@ -414,7 +346,129 @@
             document.getElementById(tab + '-pane').classList.add('active');
 
             if (tab === 'detection') {
-                loadMessages();
+                loadDetections();
+            }
+        }
+
+        // Supabase 연결 확인
+        async function checkSupabaseConnection() {
+            try {
+                const { data, error } = await supabase
+                    .from('detections')
+                    .select('count')
+                    .limit(1)
+                    .single();
+
+                if (!error) {
+                    isConnected = true;
+                    document.getElementById('supabase-status').className = 'status-icon status-online';
+                    document.getElementById('supabase-connected').textContent = '연결됨';
+                    document.getElementById('bottom-banner').textContent = '✅ Supabase 연결됨 | 실시간 감지 중';
+                    document.getElementById('bottom-banner').classList.add('online');
+
+                    // 실시간 감지 시작
+                    subscribeToDetections();
+
+                    return true;
+                }
+            } catch (error) {
+                console.error('Supabase 연결 실패:', error);
+            }
+
+            isConnected = false;
+            document.getElementById('supabase-status').className = 'status-icon status-offline';
+            document.getElementById('supabase-connected').textContent = '미연결';
+            document.getElementById('bottom-banner').textContent = '🔴 Supabase 미연결';
+            document.getElementById('bottom-banner').classList.remove('online');
+
+            return false;
+        }
+
+        // 실시간 감지 구독
+        function subscribeToDetections() {
+            supabase
+                .channel('detections')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'detections' },
+                    (payload) => {
+                        const detection = payload.new;
+                        addDetectionToUI(detection);
+                        updateDetectionCount();
+                    }
+                )
+                .subscribe();
+        }
+
+        // 감지 결과 로드
+        async function loadDetections() {
+            try {
+                const { data, error } = await supabase
+                    .from('detections')
+                    .select('*')
+                    .order('timestamp', { ascending: false })
+                    .limit(50);
+
+                if (error) throw error;
+
+                const container = document.getElementById('message-container');
+
+                if (data.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div>감지된 항목이 없습니다</div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '';
+                    data.forEach(detection => {
+                        addDetectionToUI(detection);
+                    });
+                }
+
+                updateDetectionCount();
+            } catch (error) {
+                console.error('감지 로드 실패:', error);
+            }
+        }
+
+        // UI에 감지 추가
+        function addDetectionToUI(detection) {
+            const container = document.getElementById('message-container');
+
+            if (container.querySelector('.empty-state')) {
+                container.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'message-item';
+            item.innerHTML = `
+                <div class="message-class">⚡ ${detection.class.toUpperCase()}</div>
+                <div class="message-confidence">신뢰도: ${detection.confidence}%</div>
+                <div class="message-time">${new Date(detection.timestamp).toLocaleString('ko-KR')}</div>
+            `;
+
+            container.insertBefore(item, container.firstChild);
+
+            // 최대 50개만 유지
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // 감지 개수 업데이트
+        async function updateDetectionCount() {
+            try {
+                const { count, error } = await supabase
+                    .from('detections')
+                    .select('*', { count: 'exact', head: true });
+
+                if (!error) {
+                    document.getElementById('detection-count').textContent = count || 0;
+                    document.querySelectorAll('.tab-button')[1].textContent = `📋 감지목록 (${count || 0})`;
+                }
+            } catch (error) {
+                console.error('개수 업데이트 실패:', error);
             }
         }
 
@@ -422,190 +476,76 @@
         function showCameraError() {
             const container = document.querySelector('.camera-container');
             container.innerHTML = `
-                <div class="camera-placeholder">
-                    <div class="camera-placeholder-icon">📷</div>
-                    <div class="camera-placeholder-text">카메라가 꺼져있습니다</div>
+                <div style="text-align: center; color: #999;">
+                    <div style="font-size: 60px; margin-bottom: 10px;">📷</div>
+                    <div>카메라가 꺼져있습니다</div>
+                    <div style="font-size: 12px; margin-top: 10px;">PyCharm에서 detection_streaming_server.py를 실행해주세요</div>
                 </div>
             `;
-            document.getElementById('error-alert').style.display = 'block';
-        }
-
-        // 서버 연결 확인
-        async function checkConnection() {
-            try {
-                const response = await fetch(`${API_URL}/health`);
-                if (response.ok) {
-                    isConnected = true;
-                    document.getElementById('bottom-banner').textContent =
-                        '✅ Flask 서버 연결됨 | 실시간 감지 중...';
-                    document.getElementById('bottom-banner').classList.add('online');
-                    document.getElementById('error-alert').style.display = 'none';
-
-                    updateStatus();
-                    pollMessages();
-                } else {
-                    isConnected = false;
-                    showConnectionError();
-                }
-            } catch (error) {
-                isConnected = false;
-                showConnectionError();
-            }
-        }
-
-        // 연결 오류 표시
-        function showConnectionError() {
-            document.getElementById('bottom-banner').textContent =
-                '🔴 Flask 서버 미연결 | PyCharm에서 서버를 실행해주세요';
-            document.getElementById('bottom-banner').classList.remove('online');
-            document.getElementById('error-alert').style.display = 'block';
-        }
-
-        // 상태 업데이트
-        async function updateStatus() {
-            try {
-                const response = await fetch(`${API_URL}/status`);
-                const data = await response.json();
-
-                document.getElementById('mounting-status').className =
-                    'status-icon ' + (data.camera_running ? 'status-online' : 'status-offline');
-
-                document.getElementById('other-status').className =
-                    'status-icon ' + (data.messages_count > 0 ? 'status-online' : 'status-offline');
-
-                document.getElementById('mounting-count').textContent = data.messages_count;
-            } catch (error) {
-                console.error('상태 업데이트 실패:', error);
-            }
-        }
-
-        // 메시지 폴링
-        async function pollMessages() {
-            try {
-                const response = await fetch(`${API_URL}/get_latest_message`);
-
-                if (response.status === 204 || !isConnected) {
-                    return;
-                }
-
-                const data = await response.json();
-
-                if (data.success && data.message.id !== lastMessageId) {
-                    lastMessageId = data.message.id;
-                    addMessage(data.message);
-                }
-            } catch (error) {
-                console.error('메시지 폴링 실패:', error);
-            }
-        }
-
-        // 메시지 추가
-        function addMessage(message) {
-            const container = document.getElementById('message-container');
-
-            if (container.querySelector('.empty-state')) {
-                container.innerHTML = '';
-            }
-
-            const emoji = message.type === 'realtime' ? '⚡' : '📱';
-            const item = document.createElement('div');
-            item.className = 'message-item';
-            item.innerHTML = `
-                <div class="message-class">${emoji} ${message.class.toUpperCase()}</div>
-                <div class="message-confidence">신뢰도: ${message.confidence}%</div>
-                <div class="message-time">${message.timestamp}</div>
-            `;
-
-            container.insertBefore(item, container.firstChild);
-
-            while (container.children.length > 50) {
-                container.removeChild(container.lastChild);
-            }
-        }
-
-        // 모든 메시지 로드
-        async function loadMessages() {
-            try {
-                const response = await fetch(`${API_URL}/get_messages?limit=50`);
-                const data = await response.json();
-
-                const container = document.getElementById('message-container');
-                container.innerHTML = '';
-
-                if (data.messages.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-icon">📭</div>
-                            <div>감지된 항목이 없습니다</div>
-                        </div>
-                    `;
-                } else {
-                    data.messages.reverse().forEach(msg => {
-                        const emoji = msg.type === 'realtime' ? '⚡' : '📱';
-                        const item = document.createElement('div');
-                        item.className = 'message-item';
-                        item.innerHTML = `
-                            <div class="message-class">${emoji} ${msg.class.toUpperCase()}</div>
-                            <div class="message-confidence">신뢰도: ${msg.confidence}%</div>
-                            <div class="message-time">${msg.timestamp}</div>
-                        `;
-                        container.appendChild(item);
-                    });
-                }
-            } catch (error) {
-                console.error('메시지 로드 실패:', error);
-            }
+            document.getElementById('camera-status').className = 'status-icon status-offline';
         }
 
         // 판매 감지
         async function detectSale() {
             try {
-                const response = await fetch(`${API_URL}/detect_sale`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const data = await response.json();
+                const { error } = await supabase
+                    .from('detections')
+                    .insert([{
+                        class: 'sale',
+                        confidence: 100,
+                        type: 'manual',
+                        timestamp: new Date().toISOString()
+                    }]);
 
-                if (data.success) {
-                    alert(`✅ 판매 감지됨!\n신뢰도: ${data.confidence}%`);
-                    pollMessages();
-                    updateStatus();
+                if (!error) {
+                    alert('✅ 판매 감지됨!');
+                    loadDetections();
+                    updateDetectionCount();
                 } else {
-                    alert('❌ 판매를 감지하지 못했습니다');
+                    alert('❌ 저장 실패: ' + error.message);
                 }
             } catch (error) {
-                alert('⚠️ 서버 연결 실패');
+                alert('⚠️ 오류 발생: ' + error.message);
             }
         }
 
         // 불가능 감지
         async function detectImpossible() {
             try {
-                const response = await fetch(`${API_URL}/detect_impossibility`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const data = await response.json();
+                const { error } = await supabase
+                    .from('detections')
+                    .insert([{
+                        class: 'impossibility',
+                        confidence: 100,
+                        type: 'manual',
+                        timestamp: new Date().toISOString()
+                    }]);
 
-                if (data.success) {
-                    alert(`✅ 불가능 감지됨!\n신뢰도: ${data.confidence}%`);
-                    pollMessages();
-                    updateStatus();
+                if (!error) {
+                    alert('✅ 불가능 감지됨!');
+                    loadDetections();
+                    updateDetectionCount();
                 } else {
-                    alert('❌ 불가능을 감지하지 못했습니다');
+                    alert('❌ 저장 실패: ' + error.message);
                 }
             } catch (error) {
-                alert('⚠️ 서버 연결 실패');
+                alert('⚠️ 오류 발생: ' + error.message);
             }
         }
 
         // 페이지 로드
-        window.addEventListener('load', () => {
-            console.log("✅ 소 관리 시스템 시작");
-            checkConnection();
-            setInterval(pollMessages, 2000);
-            setInterval(checkConnection, 5000);
-            setInterval(updateStatus, 3000);
+        window.addEventListener('load', async () => {
+            console.log("🚀 소 관리 시스템 시작");
+
+            // Supabase 연결 확인
+            await checkSupabaseConnection();
+
+            // 초기 감지 로드
+            await loadDetections();
+
+            // 주기적으로 상태 확인
+            setInterval(checkSupabaseConnection, 5000);
+            setInterval(updateDetectionCount, 3000);
         });
     </script>
 </body>

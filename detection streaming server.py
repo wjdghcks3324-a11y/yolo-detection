@@ -9,6 +9,37 @@ import threading
 from collections import deque
 import io
 from flask_cors import CORS
+from supabase import create_client, Client
+
+# ===== Supabase 설정 =====
+SUPABASE_URL = "https://cnwvsiniftozuompjlwk.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNud3ZzaW5pZnRvenVvbXBqbHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNjQ1MTksImV4cCI6MjA3Nzg0MDUxOX0.KTHJP5BE-NAWlhdzcVPgqZoVDZ2LLQQmFg0FY9vfRa8"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+try:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    print("✅ Supabase 연결 성공")
+except Exception as e:
+    print(f"❌ Supabase 연결 실패: {e}")
+    supabase = None
+
+
+# ⭐ 감지 결과 저장 함수
+def save_detection_to_supabase(class_name, confidence, detection_type):
+    """Supabase에 감지 결과 저장"""
+    if supabase is None:
+        return
+
+    try:
+        supabase.table('detections').insert({
+            'class': class_name,
+            'confidence': round(confidence * 100, 2),
+            'type': detection_type,
+            'timestamp': datetime.now().isoformat()
+        }).execute()
+        print(f"✅ Supabase 저장 성공: {class_name}")
+    except Exception as e:
+        print(f"❌ Supabase 저장 실패: {e}")
 
 # ===== Flask 설정 =====
 app = Flask(__name__)
@@ -41,11 +72,15 @@ class YOLODetectorWithStreaming:
             "id": len(messages),
             "class": class_name,
             "confidence": round(confidence * 100, 2),
-            "type": detection_type,  # "realtime" 또는 "ondemand"
+            "type": detection_type,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "status": "success"
         }
         messages.append(message)
+
+        # ← 이 줄 추가! Supabase에 저장
+        save_detection_to_supabase(class_name, confidence, detection_type)
+
         print(f"📱 메시지 추가: {class_name} ({confidence:.2%})")
         return message
 
@@ -344,9 +379,10 @@ def start_server(model_path, port=5000):
 if __name__ == "__main__":
     # 모델 경로 설정
     model_path = r'C:\Users\dnjsr\Desktop\YOLO_Project\runs\detect\mounting_detection3\weights\best.pt'
-    #서버 시작
     port = int(os.environ.get('PORT', 5000))
-        start_server(
+
+    # 서버 시작
+    start_server(
         model_path=model_path,
-        port=port
-        )
+        port=5000
+    )
