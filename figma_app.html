@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소 관리 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 상단 헤더 */
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-icon {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-online {
+            background: #4CAF50;
+        }
+
+        .status-offline {
+            background: #f44336;
+        }
+
+        /* 탭 */
+        .tabs-container {
+            display: flex;
+            gap: 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            background: #f0f0f0;
+            border: none;
+            border-right: 1px solid #e0e0e0;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: 0.3s;
+        }
+
+        .tab-button:last-child {
+            border-right: none;
+        }
+
+        .tab-button:hover {
+            background: #e8e8e8;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #2196F3;
+            border-bottom: 3px solid #2196F3;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* 알림창 */
+        .alert {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .alert-title {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .alert-text {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .alert-code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        /* 실시간 카메라 섹션 */
+        .camera-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .camera-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .camera-icon {
+            font-size: 18px;
+        }
+
+        .camera-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .camera-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .camera-placeholder {
+            text-align: center;
+            color: #999;
+        }
+
+        .camera-placeholder-icon {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        .camera-placeholder-text {
+            font-size: 14px;
+            color: #999;
+        }
+
+        /* 버튼 그룹 */
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            color: white;
+        }
+
+        .btn-sale {
+            background: #FF6B6B;
+        }
+
+        .btn-sale:hover {
+            background: #FF5252;
+        }
+
+        .btn-impossible {
+            background: #FF0000;
+        }
+
+        .btn-impossible:hover {
+            background: #CC0000;
+        }
+
+        /* 감지목록 */
+        .detection-list {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .list-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .message-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #f5f5f5;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .message-class {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .message-confidence {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* 하단 배너 */
+        .bottom-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #FFD700;
+            color: #333;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
+        }
+
+        .bottom-banner.online {
+            background: #4CAF50;
+            color: white;
+        }
+
+        body {
+            padding-bottom: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <div class="header-title">소 관리 시스템 🐄</div>
+            <div class="status-bar">
+                <div class="status-item">
+                    📊 DB: 4마리
+                </div>
+                <div class="status-item">
+                    <span class="status-icon status-online" id="mounting-status"></span>
+                    감지: <span id="mounting-count">0</span>건
+                </div>
+                <div class="status-item">
+                    <span class="status-icon status-offline" id="other-status"></span>
+                    마운팅: <span id="other-count">0</span>건
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 버튼 -->
+        <div class="tabs-container">
+            <button class="tab-button active" onclick="switchTab('camera')">
+                📷 실시간 카메라
+            </button>
+            <button class="tab-button" onclick="switchTab('detection')">
+                📋 감지목록 (0)
+            </button>
+        </div>
+
+        <!-- 카메라 탭 -->
+        <div class="tab-pane active" id="camera-pane">
+            <!-- 연결 오류 알림 -->
+            <div id="error-alert" style="display: none;">
+                <div class="alert">
+                    <div class="alert-title">⚠️ Flask 서버에 연결되지 않았습니다</div>
+                    <div class="alert-text">
+                        PyCharm에서 detection_streaming_server.py를 실행해주세요.
+                    </div>
+                    <div class="alert-code">python detection_streaming_server.py</div>
+                    <div class="alert-text">현재 API URL: http://10.9.2.130:5000</div>
+                </div>
+            </div>
+
+            <!-- 카메라 섹션 -->
+            <div class="camera-section">
+                <div class="camera-label">
+                    <span class="camera-icon">📷</span>
+                    실시간 카메라
+                </div>
+
+                <div class="camera-container">
+                    <img id="camera-stream"
+                         class="camera-stream"
+                         src="http://10.9.2.130:5000/video_feed"
+                         alt="카메라 스트림"
+                         onerror="showCameraError()">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-sale" onclick="detectSale()">🛍️ 판매</button>
+                    <button class="btn btn-impossible" onclick="detectImpossible()">❌ 불가능</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 감지목록 탭 -->
+        <div class="tab-pane" id="detection-pane">
+            <div class="detection-list">
+                <div class="list-header">📋 감지된 항목</div>
+                <div id="message-container">
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div>감지된 항목이 없습니다</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 하단 배너 -->
+    <div class="bottom-banner" id="bottom-banner">
+        🔴 Flask 서버 미연결 | PyCharm에서 서버를 실행해주세요
+    </div>
+
+    <script>
+        // ⭐ API URL 설정 (당신의 IP: 10.9.2.130)
+        const API_URL = 'http://10.9.2.130:5000';
+
+        let lastMessageId = -1;
+        let isConnected = false;
+
+        // 탭 전환
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            document.getElementById(tab + '-pane').classList.add('active');
+
+            if (tab === 'detection') {
+                loadMessages();
+            }
+        }
+
+        // 카메라 에러 처리
+        function showCameraError() {
+            const container = document.querySelector('.camera-container');
+            container.innerHTML = `
+                <div class="camera-placeholder">
+                    <div class="camera-placeholder-icon">📷</div>
+                    <div class="camera-placeholder-text">카메라가 꺼져있습니다</div>
+                </div>
+            `;
+            document.getElementById('error-alert').style.display = 'block';
+        }
+
+        // 서버 연결 확인
+        async function checkConnection() {
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                if (response.ok) {
+                    isConnected = true;
+                    document.getElementById('bottom-banner').textContent =
+                        '✅ Flask 서버 연결됨 | 실시간 감지 중...';
+                    document.getElementById('bottom-banner').classList.add('online');
+                    document.getElementById('error-alert').style.display = 'none';
+
+                    updateStatus();
+                    pollMessages();
+                } else {
+                    isConnected = false;
+                    showConnectionError();
+                }
+            } catch (error) {
+                isConnected = false;
+                showConnectionError();
+            }
+        }
+
+        // 연결 오류 표시
+        function showConnectionError() {
+            document.getElementById('bottom-banner').textContent =
+                '🔴 Flask 서버 미연결 | PyCharm에서 서버를 실행해주세요';
+            document.getElementById('bottom-banner').classList.remove('online');
+            document.getElementById('error-alert').style.display = 'block';
+        }
+
+        // 상태 업데이트
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_URL}/status`);
+                const data = await response.json();
+
+                document.getElementById('mounting-status').className =
+                    'status-icon ' + (data.camera_running ? 'status-online' : 'status-offline');
+
+                document.getElementById('other-status').className =
+                    'status-icon ' + (data.messages_count > 0 ? 'status-online' : 'status-offline');
+
+                document.getElementById('mounting-count').textContent = data.messages_count;
+            } catch (error) {
+                console.error('상태 업데이트 실패:', error);
+            }
+        }
+
+        // 메시지 폴링
+        async function pollMessages() {
+            try {
+                const response = await fetch(`${API_URL}/get_latest_message`);
+
+                if (response.status === 204 || !isConnected) {
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.message.id !== lastMessageId) {
+                    lastMessageId = data.message.id;
+                    addMessage(data.message);
+                }
+            } catch (error) {
+                console.error('메시지 폴링 실패:', error);
+            }
+        }
+
+        // 메시지 추가
+        function addMessage(message) {
+            const container = document.getElementById('message-container');
+
+            if (container.querySelector('.empty-state')) {
+                container.innerHTML = '';
+            }
+
+            const emoji = message.type === 'realtime' ? '⚡' : '📱';
+            const item = document.createElement('div');
+            item.className = 'message-item';
+            item.innerHTML = `
+                <div class="message-class">${emoji} ${message.class.toUpperCase()}</div>
+                <div class="message-confidence">신뢰도: ${message.confidence}%</div>
+                <div class="message-time">${message.timestamp}</div>
+            `;
+
+            container.insertBefore(item, container.firstChild);
+
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // 모든 메시지 로드
+        async function loadMessages() {
+            try {
+                const response = await fetch(`${API_URL}/get_messages?limit=50`);
+                const data = await response.json();
+
+                const container = document.getElementById('message-container');
+                container.innerHTML = '';
+
+                if (data.messages.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <div>감지된 항목이 없습니다</div>
+                        </div>
+                    `;
+                } else {
+                    data.messages.reverse().forEach(msg => {
+                        const emoji = msg.type === 'realtime' ? '⚡' : '📱';
+                        const item = document.createElement('div');
+                        item.className = 'message-item';
+                        item.innerHTML = `
+                            <div class="message-class">${emoji} ${msg.class.toUpperCase()}</div>
+                            <div class="message-confidence">신뢰도: ${msg.confidence}%</div>
+                            <div class="message-time">${msg.timestamp}</div>
+                        `;
+                        container.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                console.error('메시지 로드 실패:', error);
+            }
+        }
+
+        // 판매 감지
+        async function detectSale() {
+            try {
+                const response = await fetch(`${API_URL}/detect_sale`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ 판매 감지됨!\n신뢰도: ${data.confidence}%`);
+                    pollMessages();
+                    updateStatus();
+                } else {
+                    alert('❌ 판매를 감지하지 못했습니다');
+                }
+            } catch (error) {
+                alert('⚠️ 서버 연결 실패');
+            }
+        }
+
+        // 불가능 감지
+        async function detectImpossible() {
+            try {
+                const response = await fetch(`${API_URL}/detect_impossibility`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ 불가능 감지됨!\n신뢰도: ${data.confidence}%`);
+                    pollMessages();
+                    updateStatus();
+                } else {
+                    alert('❌ 불가능을 감지하지 못했습니다');
+                }
+            } catch (error) {
+                alert('⚠️ 서버 연결 실패');
+            }
+        }
+
+        // 페이지 로드
+        window.addEventListener('load', () => {
+            console.log("✅ 소 관리 시스템 시작");
+            checkConnection();
+            setInterval(pollMessages, 2000);
+            setInterval(checkConnection, 5000);
+            setInterval(updateStatus, 3000);
+        });
+    </script>
+</body>
+</html>
